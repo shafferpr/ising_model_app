@@ -1,462 +1,136 @@
 <!DOCTYPE html>
 
-<style>
-  .links line {
-    stroke: #999;
-    stroke-opacity: 0.6;
-  }
-
-  .nodes circle {
-    stroke: #fff;
-    stroke-width: 1.5px;
-  }
-
-  .dpoints {
-    fill: #f29e2e;
-  }
-
-  .npoints {
-    fill: #2c7bb6;
-  }
-
-  .nodes text {
-    pointer-events: none;
-    fill: #666;
-    font: 10px sans-serif;
-  }
-
-
-
-  #slider-1 {
-    margin-left: 20px;
-    margin-right: 20px;
-    float: left;
-  }
-
-  #slider-2 {
-    margin-left: 20px;
-    margin-right: 20px;
-    float: left;
-  }
-
-  #slider-3 {
-    margin-left: 20px;
-    margin-right: 20px;
-    float: left;
-  }
-
-  #slider-4 {
-    margin-left: 20px;
-    margin-right: 20px;
-    float: left;
-  }
-
-  #slider-5 {
-    margin-left: 20px;
-    margin-right: 20px;
-    float: left;
-  }
-
-  #slider-6 {
-    margin-left: 20px;
-    margin-right: 20px;
-    float: left;
-  }
-
-  #slider-7 {
-    margin-left: 20px;
-    margin-right: 20px;
-    float: left;
-  }
-
-  #slider-8 {
-    margin-left: 20px;
-    margin-right: 20px;
-    float: left;
-  }
-</style>
-
-<html lang="en">
 
 <head>
   <meta charset="utf-8">
-  <title>D3 Test</title>
-  <script type="text/javascript" src="https://d3js.org/d3.v4.min.js"></script>
-  <script src="https://code.jquery.com/jquery-1.9.1.js"></script>
-  <script src="https://code.jquery.com/ui/1.10.2/jquery-ui.js"></script>
-  <link rel="stylesheet" href="https://code.jquery.com/ui/1.10.2/themes/smoothness/jquery-ui.css" />
+  <title>Ising model</title>
+  <script type="text/javascript" src="https://d3js.org/d3.v3.min.js"></script>
 </head>
 
 <body>
 
-  <p>
-    <label for="amount1">overlap penalty</label>
-    <input type="text" id="amount1" />
-    <label for="amount2">steps</label>
-    <input type="text" id="amount2" />
-    <label for="amount3">pos damping</label>
-    <input type="text" id="amount3" />
-    <label for="amount4">sig damping</label>
-    <input type="text" id="amount4" />
-    <label for="amount5">temp</label>
-    <input type="text" id="amount5" />
-    <label for="amount6">force</label>
-    <input type="text" id="amount6" />
-    <label for="amount7">step_size</label>
-    <input type="text" id="amount7" />
-    <label for="amount8">agreement_cutoff</label>
-    <input type="text" id="amount8" />
-  </p>
+  <script>
+    // Generates and Nx by Ny grid with pointers to each tile in the grid
+    // return a map from [i,j] to the corresponding tile
+    function generateGrid(Nx, Ny, side_length) {
+      var svg = d3.select("body").append("svg")
+        .attr("width", side_length * (Nx + 2))
+        .attr("height", side_length * (Ny + 2));
+      var gTile = svg.append("g")
+        .attr("fill", "#FFFFFF")
+        .attr("stroke", "#000000")
+      var gPointmap = {};
+
+      d3.range(Nx).forEach(function(x) {
+        d3.range(Ny).forEach(function(y) {
+          gPointmap[[x, y]] = gTile.append("rect")
+            .attr("x", side_length * (x + 1))
+            .attr("y", side_length * (y + 1))
+            .attr("width", side_length)
+            .attr("height", side_length)
+            .attr("fill", "#FFFFFF");
+        })
+      });
+
+      return gPointmap;
+    }
+
+    var spincolor = {
+      "1": "#f29e2e",
+      "-1": "#2c7bb6"
+    };
+  </script>
 
 
+  <script>
+    var n2 = 50;
+    var i2_pointmap = generateGrid(n2, n2, 20);
+    itemp2 = 0.2;
+    interv2 = 200;
+    hfield=0;
+    directions = [
+      [-1, 0],
+      [1, 0],
+      [0, -1],
+      [0, 1]
+    ];
 
-
-  <div id="slider-1" style="height: 200px;"></div>
-  <div id="slider-2" style="height: 200px;"></div>
-  <div id="slider-3" style="height: 200px;"></div>
-  <div id="slider-4" style="height: 200px;"></div>
-  <div id="slider-5" style="height: 200px;"></div>
-  <div id="slider-6" style="height: 200px;"></div>
-  <div id="slider-7" style="height: 200px;"></div>
-  <div id="slider-8" style="height: 200px;"></div>
-  <svg width="1000" height="1000"></svg>
-  <script type="text/javascript">
-
-    $(function() {
-      createSlider($("#slider-1"), $("#amount1"), 0, 1100, 480, 10);
-      createSlider($("#slider-2"), $("#amount2"), 15, 100, 20, 1);
-      createSlider($("#slider-3"), $("#amount3"), 0.01, 0.1, 0.04, 0.01);
-      createSlider($("#slider-4"), $("#amount4"), 0.02, 0.3, 0.09, 0.01);
-      createSlider($("#slider-5"), $("#amount5"), 0.001, 0.05, 0.001, 0.002);
-      createSlider($("#slider-6"), $("#amount6"), 0, 1100, 840, 10);
-      createSlider($("#slider-7"), $("#amount7"), 0, 100, 5, 1);
-      createSlider($("#slider-8"), $("#amount8"), 0, 0.001, 0.00002, 0.00001);
+    spin2 = {};
+    d3.range(n2).forEach(function(x) {
+      d3.range(n2).forEach(function(y) {
+        spin2[[x, y]] = 1 - 2 * (~~(2 * Math.random()));
+        i2_pointmap[[x, y]].attr("fill", spincolor[spin2[[x, y]]]);
+      })
     });
 
-    var svg = d3.select("svg"),
-      width = +svg.attr("width"),
-      height = +svg.attr("height");
-    var color = d3.scaleOrdinal(d3.schemeCategory20);
-    var counter=0;
-    var n_features = 3;
-    var npointsPerFeature = 100;
-    var agreement=0;
-    var agreement_mean=0;
-    var agreement_counter=0;
+    function square_ising_callback() {
+      return function() {
+        for (var k=0; k<200; k++){
+          var x = ~~(n2 * Math.random());
+          var y = ~~(n2 * Math.random());
 
-    var feature_centers = new Array(n_features);
-    var random_positions = new Array(npointsPerFeature * n_features);
-    var node_positions = new Array(n_features);
-    var node_sigmas = new Array(n_features);
-
-    feature_centers[0] = [200, 200];
-    feature_centers[1] = [200, 300];
-    feature_centers[2] = [450, 250];
-
-
-
-    var random_positions_nf = feature_centers.map(x => random_points(x));
-    var random_positions = [].concat.apply([], random_positions_nf);
-
-    var xmax = Math.max.apply(Math, random_positions.map(function(v) {
-      return v[0];
-    }));
-    var ymax = Math.max.apply(Math, random_positions.map(function(v) {
-      return v[1];
-    }));
-    boxx = xmax + 100;
-    boxy = ymax + 100;
-
-    //random_positions.map(x => random_circles(x));
-
-    svg.selectAll("circle")
-      .data(random_positions)
-      .enter()
-      .append("circle")
-      .attr("cx", function(d) {
-        return d[0]
-      })
-      .attr("cy", function(d) {
-        return d[1]
-      })
-      .attr("class", "dpoints")
-      .attr("r", 2.5)
-      .style("mix-blend-mode", "multiply");
-
-
-
-
-    node_positions[0] = [200, 200];
-    node_positions[1] = [200, 300];
-    node_positions[2] = [250, 250];
-    node_sigmas[0] = 30;
-    node_sigmas[1] = 30;
-    node_sigmas[2] = 30;
-
-    var sigma_vs = new Array(n_features).fill(0.0);
-    var posx_vs = new Array(n_features).fill(0.0);
-    var posy_vs = new Array(n_features).fill(0.0);
-
-    var circles = new Array(n_features);
-
-    npoints = [];
-    for (i = 0; i < node_positions.length; i++) {
-      npoints.push({
-        x: node_positions[i][0],
-        y: node_positions[i][1],
-        sigma: node_sigmas[i],
-        vx: 0,
-        vy: 0,
-        vsig: 0,
-        alive: true
-      });
-    }
-
-
-    var nodeWrapper = svg.append("g")
-      .attr("class", "npoints");
-
-
-
-    function runSim() {
-      var num_steps = $('#slider-2').slider("value");
-      var agreement_mean_cutoff = $('#slider-8').slider("value");
-
-
-      for (i = 0; i < num_steps; i++) {
-        move_nodes();
-
-      }
-      counter += 1;
-      agreement_counter += 1;
-      agreement_mean = agreement/agreement_counter;
-      //console.log(npoints[npoints.length-1],'AA');
-
-      if(counter==700){
-
-        spawn_particle();
-
-        counter=0;
-        agreement_counter=0;
-        agreement_mean=0;
-        agreement=0;
-      }
-
-
-
-      if((agreement_counter % 100 == 0) && (counter>199)){
-        console.log(agreement_mean);
-        if(agreement_mean>agreement_mean_cutoff){
-          npoints[npoints.length-1].alive=false;
-          npoints = npoints.filter(function(d) {
-            return d.alive;
-          });
-          agreement_counter=0;
-          agreement=0;
-        }
-      }
-
-      var nodeGroup = nodeWrapper.selectAll("circle")
-        .data(npoints);
-
-      nodeGroup
-        .style("mix-blend-mode", "multiply")
-        //.each(move_nodes)
-        .transition("move").duration(20)
-        .attr("fill-opacity", 1)
-        .attr("r", function(d) {
-          return d.sigma
-        })
-        .attr("cx", function(d) {
-          return d.x
-        })
-        .attr("cy", function(d) {
-          return d.y
-        });
-      //.enter().append("circle");
-
-      nodeGroup
-        .enter().append("circle");
-      //.attr("r", function(d){return d.sigma})
-      //.attr("cx", function(d){return d.x})
-      //.attr("cy", function(d){return d.y});
-
-      nodeGroup.exit().remove();
-
-    }
-
-    var loopsim = setInterval(runSim, 20);
-    /*for (var p=0; p<5; p++){
-      runSim();
-    }*/
-
-    function spawn_particle(){
-      //console.log(npoints[npoints.length-1],'A');
-      particle = {
-        x: npoints[npoints.length-1].x + (Math.random() - 0.5)*150,
-        y: npoints[npoints.length-1].y + (Math.random() - 0.5)*150,
-        sigma: npoints[npoints.length-1].sigma*0.6,
-        vx: 0,
-        vy: 0,
-        vsig: 0,
-        alive: true
-      };
-      /*particle = {
-        x: 400,
-        y: 300,
-        sigma: npoints[npoints.length-1].sigma*0.6,
-        alive: true
-      };*/
-      //console.log(particle,'B');
-      npoints.push(particle);
-    }
-
-    function move_nodes() {
-      var firstDsig = new Array(npoints.length).fill(0);
-      var firstDposx = new Array(npoints.length).fill(0);
-      var firstDposy = new Array(npoints.length).fill(0);
-      var sum = new Array(npoints.length).fill(0);
-      var overlap_penalty = $('#slider-1').slider("value");
-      var pos_damping = $('#slider-3').slider("value");
-      var sig_damping = $('#slider-4').slider("value");
-      var temperature = $('#slider-5').slider("value");
-      var force = $('#slider-6').slider("value");
-      var step_size = $('#slider-7').slider("value");
-
-      for (k = 0; k < npoints.length ; k++) {
-        for (j = 0; j < random_positions.length; j++) {
-
-          var gauss1 = 0;
-          var gauss_others = 0;
-          var gaussDx = 0;
-          var gaussDy = 0;
-          var gaussDsig = 0;
-
-
-          gauss1 = gaussian(random_positions[j][0], npoints[k].x, random_positions[j][1], npoints[k].y, npoints[k].sigma);
-          gaussDx = firstDerivPos(random_positions[j][0], npoints[k].x, random_positions[j][1], npoints[k].y, npoints[k].sigma);
-          gaussDy = firstDerivPos(random_positions[j][1], npoints[k].y, random_positions[j][0], npoints[k].x, npoints[k].sigma);
-          gaussDsig = firstDerivSigma(random_positions[j][0], npoints[k].x, random_positions[j][1], npoints[k].y, npoints[k].sigma);
-
-          firstDposx[k] += force * gaussDx * gauss1;
-          firstDposy[k] += force * gaussDy * gauss1;
-          firstDsig[k] += force * gaussDsig * gauss1;
-
-          var sum_of_sigmas = 0;
-          for (l = 0; l < npoints.length ; l++) {
-            if (l != k) {
-              gauss_others += gaussian(random_positions[j][0], npoints[l].x, random_positions[j][1], npoints[l].y, npoints[l].sigma);
+          var neighbors_spin = 0;
+          d3.range(4).forEach(function(i) {
+            var x1 = x + directions[i][0],
+              y1 = y + directions[i][1];
+              if (x1 >= 0 & x1 < n2 & y >= 0 & y < n2) {
+                neighbors_spin += spin2[[x1, y1]];
+              }
+            });
+            var prob_pos_spin = Math.exp(itemp2 * neighbors_spin+itemp2*hfield) / (Math.exp(itemp2 * neighbors_spin+itemp2*hfield) + Math.exp(-itemp2 * neighbors_spin-itemp2*hfield));
+            if (Math.random() < prob_pos_spin) {
+              spin2[[x, y]] = 1;
+            } else {
+              spin2[[x, y]] = -1;
             }
-            sum_of_sigmas += npoints[l].sigma;
           }
-          if(k == (npoints.length -1)){
-            agreement += gauss_others*gauss1; //will only be large when gauss_others and gauss1 are large;
+        for(var k=0; k<n2; k++){
+          for(var k1=0; k1<n2; k1++){
+            i2_pointmap[[k,k1]].transition().delay(interv2 / 2).attr("fill", spincolor[spin2[[k, k1]]]);
           }
-          firstDposx[k] += overlap_penalty * (gauss1 - gauss_others) * gaussDx;
-          firstDposy[k] += overlap_penalty * (gauss1 - gauss_others) * gaussDy;
-          firstDsig[k] += overlap_penalty * (gauss1 - gauss_others) * gaussDsig;
-
-          if (sum_of_sigmas > 1350) {
-            firstDsig[k] += 5;
-          }
-
-
         }
-
-        npoints[k].vsig -= sig_damping * npoints[k].vsig;
-        npoints[k].vx -= pos_damping * npoints[k].vx;
-        npoints[k].vy -= pos_damping * npoints[k].vy;
-
-        npoints[k].vsig -= firstDsig[k] + 6 * temperature * (Math.random() - 0.5);
-
-        npoints[k].vx -= firstDposx[k] + 10 * temperature * (Math.random() - 0.5);
-
-        npoints[k].vy -= firstDposy[k] + 10 * temperature * (Math.random() - 0.5);
-
-
-        var nsn = npoints[k].sigma + step_size * npoints[k].vsig;
-
-        if (nsn > 15) {
-          npoints[k].sigma += step_size * npoints[k].vsig;
-        }
-
-        npoints[k].x += step_size * npoints[k].vx ;
-        if (npoints[k].x > boxx) {
-          npoints[k].x = npoints[k].x - boxx;
-        }
-        if (npoints[k].x < 0) {
-          npoints[k].x = boxx + npoints[k].x;
-        }
-
-        npoints[k].y += step_size * npoints[k].vy ;
-        if (npoints[k].y > boxy) {
-          npoints[k].y = npoints[k].y - boxy;
-        }
-        if (npoints[k].y < 0) {
-          npoints[k].y = boxy + npoints[k].y;
-        }
-
+        d3.timer(square_ising_callback(), interv2);
+        return true;
       }
-
-
-
     }
+    d3.timer(square_ising_callback(), interv2);
+  </script>
 
 
+  <p>
 
-    function gaussian(x, x0, y, y0, sig) {
-      var r2 = Math.pow(x - x0, 2) + Math.pow(y - y0, 2);
-      return Math.exp(-r2 / (2 * sig * sig)) / (sig * sig);
-    }
+    <input type="range" min="0.1" max="4" value="0.2" step="0.02" id="itemp2">
+    Inverse Temperature = <span id="itemp2-value">0.2</span>
+  </p>
 
-    function firstDerivPos(x, x0, y, y0, sig) {
-      return gaussian(x, x0, y, y0, sig) * (x0 - x) / (sig * sig);
-    }
+  <p>
 
-    function firstDerivSigma(x, x0, y, y0, sig) {
-      var r2 = Math.pow(x - x0, 2) + Math.pow(y - y0, 2);
-      var gauss = gaussian(x, x0, y, y0, sig);
-      return gauss * (r2 / Math.pow(sig, 3) - 2 / sig);
+    <input type="range" min="10" max="200" value="10" id="interv2">
+    Speed = <span id="interv2-value">10</span>
+  </p>
 
-    }
+  <p>
+    <input type="range" min="-4.1" max="4.1" value="0" step="0.1" id="hfield">
+    external field = <span id="hfield-value">0</span>
+  </p>
 
+  <script>
+    d3.select("#itemp2").on("input", function() {
+      d3.select("#itemp2-value").text((this.value));
+      //d3.select("#itemp2-value").text(function() { return d3.format(".2f")(this.value); });
+      itemp2 = +this.value;
+    });
 
+    d3.select("#interv2").on("input", function() {
+      d3.select("#interv2-value").text(("00" + this.value).slice(-3));
+      interv2 = 210 - this.value;
+    });
 
-    function random_points(centers) {
-      rand_points = new Array(npointsPerFeature);
-
-      for (j = 0; j < npointsPerFeature; j++) {
-        var posx = 0;
-        var posy = 0;
-
-        do {
-          posx = 100 * (Math.random() - 0.5) + centers[0];
-          posy = 100 * (Math.random() - 0.5) + centers[1];
-        }
-        while ((Math.pow(posx - centers[0], 2) + Math.pow(posy - centers[1], 2)) > (50.0 * 50.0));
-
-        rand_points[j] = [posx, posy];
-
-      }
-      return rand_points;
-    }
-
-    function createSlider(slider, boundTextField, min, max, init, step) {
-      slider.slider({
-        orientation: "vertical",
-        range: "min",
-        min: min,
-        max: max,
-        value: init,
-        step: step,
-        slide: function(event, ui) {
-          boundTextField.val(ui.value);
-          //drawOnCanvas();
-        }
-      })
-    }
+    d3.select("#hfield").on("input", function() {
+      //d3.select("#hfield-value");
+      d3.select("#hfield-value").text((this.value));
+      hfield = +this.value;
+    });
 
   </script>
 </body>
-
-</html>
